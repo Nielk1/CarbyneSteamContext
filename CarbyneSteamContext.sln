@@ -9,6 +9,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CarbyneSteamContextServer",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CarbyneSteamContextWrapper", "CarbyneSteamContextWrapper\CarbyneSteamContextWrapper.csproj", "{CD64560E-C24A-47B5-B4ED-AE05AEC1B004}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libraries", "Libraries", "{60DA907B-8CBA-4A53-B671-9CF29AC7792C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Steam4NET", "Libraries\open-steamworks\Steam4NET2\Steam4NET2\Steam4NET.csproj", "{1A204257-FE82-4BBE-9ED4-40694821C31F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,8 +31,15 @@ Global
 		{CD64560E-C24A-47B5-B4ED-AE05AEC1B004}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CD64560E-C24A-47B5-B4ED-AE05AEC1B004}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CD64560E-C24A-47B5-B4ED-AE05AEC1B004}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A204257-FE82-4BBE-9ED4-40694821C31F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A204257-FE82-4BBE-9ED4-40694821C31F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A204257-FE82-4BBE-9ED4-40694821C31F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A204257-FE82-4BBE-9ED4-40694821C31F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1A204257-FE82-4BBE-9ED4-40694821C31F} = {60DA907B-8CBA-4A53-B671-9CF29AC7792C}
 	EndGlobalSection
 EndGlobal
