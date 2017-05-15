@@ -101,7 +101,7 @@ namespace CarbyneSteamContextServer
 
             {
                 SteamContext context = SteamContext.GetInstance();
-
+                context.Init();
                 /*NamedPipeServerStream CallbackCallServer;
                 Task.Factory.StartNew(() =>
                 {
@@ -168,15 +168,15 @@ namespace CarbyneSteamContextServer
                                     if (TimeoutCounter >= timeout)
                                     {
                                         break;
-                                                //waitingForConnection.
-                                            }
+                                        //waitingForConnection.
+                                    }
                                 }
                             }
 
                             if (timeout > 0 && TimeoutCounter >= timeout)
                             {
-                                        // we timed out, so we need to GTFO
-                                        ServerHold = false;
+                                // we timed out, so we need to GTFO
+                                ServerHold = false;
                                 break;
                             }
                             else
@@ -211,30 +211,128 @@ namespace CarbyneSteamContextServer
 
                                 if (!string.IsNullOrWhiteSpace(call.Function))
                                 {
-                                    switch (call.Function)
+                                    try
                                     {
-                                        case "IsInstalled":
-                                            {
-                                                string OutGoing = JsonConvert.SerializeObject(
-                                                    new InteropFunctionReturn()
-                                                    {
-                                                        Return = context.IsInstalled(call.Paramaters["GameID"].ToObject<UInt64>())
-                                                    });
-                                                lock (LockConsole)
+                                        switch (call.Function)
+                                        {
+                                            case "IsInstalled":
                                                 {
-                                                    Console.WriteLine($"<{OutGoing}");
+                                                    string OutGoing = JsonConvert.SerializeObject(
+                                                        new InteropFunctionReturn()
+                                                        {
+                                                            Return = context.IsInstalled(call.Paramaters["GameID"].ToObject<UInt64>())
+                                                        });
+                                                    lock (LockConsole)
+                                                    {
+                                                        Console.WriteLine($"<{OutGoing}");
+                                                    }
+                                                    DirectCallWriter.WriteLine(OutGoing);
+                                                    DirectCallWriter.Flush();
                                                 }
-                                                DirectCallWriter.WriteLine(OutGoing);
-                                                DirectCallWriter.Flush();
-                                            }
-                                            break;
+                                                break;
+                                            case "GetGameLibraries":
+                                                {
+                                                    string OutGoing = JsonConvert.SerializeObject(
+                                                        new InteropFunctionReturn()
+                                                        {
+                                                            Return = new JArray(context.GetGameLibraries())
+                                                        });
+                                                    lock (LockConsole)
+                                                    {
+                                                        Console.WriteLine($"<{OutGoing}");
+                                                    }
+                                                    DirectCallWriter.WriteLine(OutGoing);
+                                                    DirectCallWriter.Flush();
+                                                }
+                                                break;
+                                            case "InstallGame":
+                                                {
+                                                    Steam4NET.EAppUpdateError? rawReturn = context.InstallGame(call.Paramaters["GameID"].ToObject<UInt64>(), call.Paramaters["GameLibraryIndex"].ToObject<int>());
+                                                    string OutGoing = JsonConvert.SerializeObject(
+                                                        new InteropFunctionReturn()
+                                                        {
+                                                            Return = rawReturn.HasValue ? (int?)rawReturn.Value : null
+                                                        });
+                                                    lock (LockConsole)
+                                                    {
+                                                        Console.WriteLine($"<{OutGoing}");
+                                                    }
+                                                    DirectCallWriter.WriteLine(OutGoing);
+                                                    DirectCallWriter.Flush();
+                                                }
+                                                break;
+                                            case "GetOwnedApps":
+                                                {
+                                                    List<SteamLaunchableApp> rawReturn = context.GetOwnedApps();
+                                                    string OutGoing = JsonConvert.SerializeObject(
+                                                        new InteropFunctionReturn()
+                                                        {
+                                                            Return = JArray.FromObject(rawReturn)
+                                                        });
+                                                    lock (LockConsole)
+                                                    {
+                                                        Console.WriteLine($"<{OutGoing}");
+                                                    }
+                                                    DirectCallWriter.WriteLine(OutGoing);
+                                                    DirectCallWriter.Flush();
+                                                }
+                                                break;
+                                            case "GetGoldSrcMods":
+                                                {
+                                                    List<SteamLaunchableModGoldSrc> rawReturn = context.GetGoldSrcMods();
+                                                    string OutGoing = JsonConvert.SerializeObject(
+                                                        new InteropFunctionReturn()
+                                                        {
+                                                            Return = JArray.FromObject(rawReturn)
+                                                        });
+                                                    lock (LockConsole)
+                                                    {
+                                                        Console.WriteLine($"<{OutGoing}");
+                                                    }
+                                                    DirectCallWriter.WriteLine(OutGoing);
+                                                    DirectCallWriter.Flush();
+                                                }
+                                                break;
+                                            case "GetSourceMods":
+                                                {
+                                                    List<SteamLaunchableModSource> rawReturn = context.GetSourceMods();
+                                                    string OutGoing = JsonConvert.SerializeObject(
+                                                        new InteropFunctionReturn()
+                                                        {
+                                                            Return = JArray.FromObject(rawReturn)
+                                                        });
+                                                    lock (LockConsole)
+                                                    {
+                                                        Console.WriteLine($"<{OutGoing}");
+                                                    }
+                                                    DirectCallWriter.WriteLine(OutGoing);
+                                                    DirectCallWriter.Flush();
+                                                }
+                                                break;
+                                            default:
+                                                throw new Exception($"Unknown Function \"{call.Function}\"");
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        string OutGoing = JsonConvert.SerializeObject(
+                                                        new InteropFunctionReturn()
+                                                        {
+                                                            Exception = ex
+                                                        });
+                                        lock (LockConsole)
+                                        {
+                                            Console.WriteLine(ex.ToString());
+                                            //Console.WriteLine($"<{OutGoing}");
+                                        }
+                                        DirectCallWriter.WriteLine(OutGoing);
+                                        DirectCallWriter.Flush();
                                     }
                                 }
-
-                                        //var line = DirectCallReader.ReadLine();
-                                        //DirectCallWriter.WriteLine(String.Join("", line.Reverse()));
-                                        //DirectCallWriter.Flush();
-                                    }
+                                //var line = DirectCallReader.ReadLine();
+                                //DirectCallWriter.WriteLine(String.Join("", line.Reverse()));
+                                //DirectCallWriter.Flush();
+                            }
                             catch
                             {
 
@@ -273,6 +371,11 @@ namespace CarbyneSteamContextServer
                     DirectCallServer.Dispose();
                 }
                 catch { }
+
+                if(context != null)
+                {
+                    context.Shutdown();
+                }
             }
             /*
                 }
@@ -311,5 +414,6 @@ namespace CarbyneSteamContextServer
     {
         public JToken Return { get; set; }
         public Dictionary<string, JToken> OutParamaters { get; set; }
+        public Exception Exception { get; set; }
     }
 }

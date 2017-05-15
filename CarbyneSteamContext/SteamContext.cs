@@ -177,7 +177,8 @@ namespace CarbyneSteamContext
         private static SteamContext CoreInstance;
         private SteamContext()
         {
-            Init(); // attempt a free init
+            // No more free init, force ppl to use the context properly
+            //Init(); // attempt a free init
         }
 
         #region Dispose
@@ -1019,7 +1020,7 @@ namespace CarbyneSteamContext
         }
 
         // TODO use a better AppID source, the AppInfo.vtf file only holds data the client has actually seen
-        public List<SteamLaunchableApp> GetClientApps()
+        public List<SteamLaunchableApp> GetOwnedApps()
         {
             UInt32[] appIDs = GetClientAppIds();
             List<SteamLaunchableApp> apps = new List<SteamLaunchableApp>();
@@ -1051,41 +1052,52 @@ namespace CarbyneSteamContext
                         BVPropertyCollection extended = ((BVPropertyCollection)appinfo?["extended"]);
 
                         string type = common?["type"]?.GetValue<string>()?.ToLowerInvariant();
-                        if (type == "demo" || type == "game")
+                        //if (type == "demo" || type == "game")
+                        if(!string.IsNullOrWhiteSpace(type) && type != "config")
                         {
                             bool isInstalled = SteamApps.BIsAppInstalled(chunk.AppID);
                             bool isSubscribed = SteamApps.BIsSubscribedApp(chunk.AppID);
 
                             string name = common?["name"]?.GetValue<string>();
-                            string oslist = common?["oslist"]?.GetValue<string>();
-                            string icon = common?["icon"]?.GetValue<string>();
-                            string clienttga = common?["clienttga"]?.GetValue<string>();
+                            //string oslist = common?["oslist"]?.GetValue<string>();
+                            //string icon = common?["icon"]?.GetValue<string>();
+                            //string clienttga = common?["clienttga"]?.GetValue<string>();
                             string clienticon = common?["clienticon"]?.GetValue<string>();
-                            string logo = common?["logo"]?.GetValue<string>();
-                            string logo_small = common?["logo_small"]?.GetValue<string>();
-                            string releasestate = common?["releasestate"]?.GetValue<string>();
-                            string linuxclienticon = common?["linuxclienticon"]?.GetValue<string>();
-                            string controller_support = common?["controller_support"]?.GetValue<string>();
-                            string clienticns = common?["clienticns"]?.GetValue<string>();
-                            int metacritic_score = ((BVInt32Token)common?["metacritic_score"])?.Value ?? -1;
-                            string metacritic_name = common?["metacritic_name"]?.GetValue<string>();
-                            BVPropertyCollection small_capsule = ((BVPropertyCollection)common?["small_capsule"]);
-                            BVPropertyCollection header_image = ((BVPropertyCollection)common?["header_image"]);
-                            BVPropertyCollection languages = ((BVPropertyCollection)common?["languages"]);
-                            bool community_visible_stats = common?["community_visible_stats"]?.GetValue<string>() == "1";
-                            bool community_hub_visible = common?["community_hub_visible"]?.GetValue<string>() == "1";
-                            bool workshop_visible = common?["workshop_visible"]?.GetValue<string>() == "1";
-                            bool exfgls = common?["exfgls"]?.GetValue<string>() == "1";
-                            string gamedir = extended?["gamedir"]?.GetValue<string>();
-                            string developer = extended?["developer"]?.GetValue<string>();
-                            string publisher = extended?["publisher"]?.GetValue<string>();
-                            string homepage = extended?["homepage"]?.GetValue<string>();
-                            string gamemanualurl = extended?["gamemanualurl"]?.GetValue<string>();
-                            bool showcdkeyonlaunch = extended?["showcdkeyonlaunch"]?.GetValue<string>() == "1";
-                            bool dlcavailableonstore = extended?["dlcavailableonstore"]?.GetValue<string>() == "1";
+                            //string logo = common?["logo"]?.GetValue<string>();
+                            //string logo_small = common?["logo_small"]?.GetValue<string>();
+                            //string releasestate = common?["releasestate"]?.GetValue<string>();
+                            //string linuxclienticon = common?["linuxclienticon"]?.GetValue<string>();
+                            //string controller_support = common?["controller_support"]?.GetValue<string>();
+                            //string clienticns = common?["clienticns"]?.GetValue<string>();
+                            //int metacritic_score = ((BVInt32Token)common?["metacritic_score"])?.Value ?? -1;
+                            //string metacritic_name = common?["metacritic_name"]?.GetValue<string>();
+                            //BVPropertyCollection small_capsule = ((BVPropertyCollection)common?["small_capsule"]);
+                            //BVPropertyCollection header_image = ((BVPropertyCollection)common?["header_image"]);
+                            //BVPropertyCollection languages = ((BVPropertyCollection)common?["languages"]);
+                            //bool community_visible_stats = common?["community_visible_stats"]?.GetValue<string>() == "1";
+                            //bool community_hub_visible = common?["community_hub_visible"]?.GetValue<string>() == "1";
+                            //bool workshop_visible = common?["workshop_visible"]?.GetValue<string>() == "1";
+                            //bool exfgls = common?["exfgls"]?.GetValue<string>() == "1";
+                            //string gamedir = extended?["gamedir"]?.GetValue<string>();
+                            //string developer = extended?["developer"]?.GetValue<string>();
+                            //string publisher = extended?["publisher"]?.GetValue<string>();
+                            //string homepage = extended?["homepage"]?.GetValue<string>();
+                            //string gamemanualurl = extended?["gamemanualurl"]?.GetValue<string>();
+                            //bool showcdkeyonlaunch = extended?["showcdkeyonlaunch"]?.GetValue<string>() == "1";
+                            //bool dlcavailableonstore = extended?["dlcavailableonstore"]?.GetValue<string>() == "1";
 
-                            Console.WriteLine($"{chunk.AppID}\t{(type ?? string.Empty).PadRight(4)} {(isInstalled ? 1 : 0)} {(isSubscribed ? 1 : 0)} {(releasestate ?? string.Empty).PadRight(11)} {(name ?? string.Empty).PadRight(90)} {(developer ?? string.Empty).PadRight(40)} {(publisher ?? string.Empty)}");
+                            //Console.WriteLine($"{chunk.AppID}\t{(type ?? string.Empty).PadRight(4)} {(isInstalled ? 1 : 0)} {(isSubscribed ? 1 : 0)} {(releasestate ?? string.Empty).PadRight(11)} {(name ?? string.Empty).PadRight(90)} {(developer ?? string.Empty).PadRight(40)} {(publisher ?? string.Empty)}");
                             //File.AppendAllText("SteamDump.txt",$"{chunk.appID}\t{(type ?? string.Empty).PadRight(4)} {(isInstalled ? 1 : 0)} {(isSubscribed ? 1 : 0)} {(releasestate ?? string.Empty).PadRight(11)} {(name ?? string.Empty).PadRight(90)} {(developer ?? string.Empty).PadRight(40)} {(publisher ?? string.Empty).PadRight(40)}\r\n");
+
+                            if (isSubscribed && !string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(type))
+                            {
+                                apps.Add(new SteamLaunchableApp(chunk.AppID)
+                                {
+                                    Name = name?.TrimEnd(),
+                                    appIcon = string.IsNullOrWhiteSpace(clienticon) ? null : Path.Combine(Steamworks.GetInstallPath(), "steam", "games", clienticon + ".ico"),
+                                    appType = type
+                                });
+                            }
                         }
                     }
                 });
@@ -1188,7 +1200,7 @@ namespace CarbyneSteamContext
                             StringBuilder AppInstallDir = new StringBuilder(255);
                             if (SteamApps.GetAppInstallDir(appIdCheck, AppInstallDir) > 0)
                             {
-                                SteamLaunchableModSource mod = SteamLaunchableModSource.Make(appIdCheck, Path.GetFileName(dr), rootObj);
+                                SteamLaunchableModSource mod = SteamLaunchableModSource.Make(appIdCheck, dr, rootObj);
                                 if (mod != null) SourceMods.Add(mod);
                             }
                         });
@@ -1260,6 +1272,45 @@ namespace CarbyneSteamContext
                 case CGameID.EGameID.k_EGameIDTypeShortcut:
                     break;
             }
+        }
+
+        public string[] GetGameLibraries()
+        {
+            try
+            {
+                int CountBaseFolders = ClientAppManager.GetNumInstallBaseFolders();
+                string[] BaseFolders = new string[CountBaseFolders];
+                for (int x = 0; x < CountBaseFolders; x++)
+                {
+                    StringBuilder builder = new StringBuilder(1024);
+                    ClientAppManager.GetInstallBaseFolder(x, builder);
+                    BaseFolders[x] = builder.ToString();
+                }
+                return BaseFolders;
+            }
+            catch
+            {
+                return new string[0];
+            }
+        }
+
+        public EAppUpdateError? InstallGame(UInt64 GameID, int GameLibraryIndex)
+        {
+            CGameID gameID = new CGameID(GameID);
+            switch (gameID.AppType)
+            {
+                // Basic Steam App
+                case CGameID.EGameID.k_EGameIDTypeApp:
+                    {
+                        return ClientAppManager.InstallApp(gameID.AppID, GameLibraryIndex, false);
+                    }
+                    break;
+                case CGameID.EGameID.k_EGameIDTypeGameMod:
+                    break;
+                case CGameID.EGameID.k_EGameIDTypeShortcut:
+                    break;
+            }
+            return null;
         }
 
         /*
@@ -1360,6 +1411,8 @@ namespace CarbyneSteamContext
         //public string ShortcutData { get; set; }
 
         public abstract string Title { get; }
+        public abstract string Icon { get; }
+        public abstract string AppType { get; }
 
         private static readonly CRC.Setting crcSetting = new CRC.Setting(32, 0x04C11DB7, 0xffffffff, true, true, 0xffffffff);
 
@@ -1390,9 +1443,11 @@ namespace CarbyneSteamContext
         public Dictionary<string, string> ConfigLines { get; set; }
         public string ModFolder { get; set; }
         public string ModPath { get; set; }
-        private string ModTitle { get; set; }
+        public string ModTitle { get; set; }
 
         public override string Title { get { return ModTitle; } }
+        public override string Icon { get { return null; } }
+        public override string AppType { get { return "GoldSrc Mod"; } }
         public override string ModIdString { get { return ModFolder; } }
 
         public SteamLaunchableModGoldSrc(uint AppID, string ModFolder, string ModTitle)
@@ -1436,15 +1491,20 @@ namespace CarbyneSteamContext
     public class SteamLaunchableModSource : SteamLaunchableMod
     {
         public string ModFolder { get; set; }
-        private string ModTitle { get; set; }
+        public string ModTitle { get; set; }
+        public string ModIcon { get; set; }
+        public string ModDir { get; set; }
 
         public override string Title { get { return ModTitle; } }
+        public override string Icon { get { return ModIcon != null ? Path.Combine(ModDir, ModIcon + ".ico") : null; } }
+        public override string AppType { get { return "Source Mod"; } }
         public override string ModIdString { get { return ModFolder; } }
 
-        public SteamLaunchableModSource(uint HostAppID, string ModFolder, string ModTitle)
+        public SteamLaunchableModSource(uint HostAppID, string ModDir, string ModTitle)
         {
             this.AppID = HostAppID;
-            this.ModFolder = ModFolder;
+            this.ModFolder = Path.GetFileName(ModDir);
+            this.ModDir = ModDir;
             this.ModTitle = ModTitle;
         }
 
@@ -1456,7 +1516,7 @@ namespace CarbyneSteamContext
 
             SteamLaunchableModSource src = new SteamLaunchableModSource(HostAppID, ModDir, GameObj?.ToString())
             {
-
+                ModIcon = IconObj?.ToString()
             };
 
             return src;
@@ -1465,16 +1525,22 @@ namespace CarbyneSteamContext
 
     public class SteamLaunchableApp : SteamLaunchable
     {
-        public override string Title { get { return "App"; } }
-
+        public override string Title { get { return Name; } }
+        public override string Icon { get { return appIcon; } }
+        public override string AppType { get { return appType; } }
         public override string ModIdString { get { return string.Empty; } }
 
         public override SteamLaunchableType ShortcutType { get { return SteamLaunchableType.App; } }
 
+        public string Name { get; set; }
+        public string appIcon { get; set; }
+        public string appType { get; set; }
+
         // hopefully the base class will use this because the base is virtual rather than not
         public override UInt32 GenerateModID()
         {
-            return 0 | 0x80000000;
+            //return 0 | 0x80000000;
+            return 0;
         }
 
         public SteamLaunchableApp(uint AppID)
@@ -1496,6 +1562,8 @@ namespace CarbyneSteamContext
     public class SteamLaunchableShortcut : SteamLaunchable
     {
         public override string Title { get { return "Shortcut"; } }
+        public override string Icon { get { return icon; } }
+        public override string AppType { get { return "Shortcut"; } }
 
         public override SteamLaunchableType ShortcutType { get { return SteamLaunchableType.Shortcut; } }
 

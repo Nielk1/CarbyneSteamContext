@@ -13,6 +13,7 @@ using CarbyneSteamContext.Models;
 using System.Text.RegularExpressions;
 using Steam4NET;
 using System.Diagnostics;
+using CarbyneSteamContext;
 //using HSteamPipe = System.Int32;
 //using HSteamUser = System.Int32;
 
@@ -110,6 +111,13 @@ namespace CarbyneSteamContextWrapper
             }
         }
 
+        public Process GetSteamProcess()
+        {
+            int pid = WrappedContext.SteamPID;
+            if (pid == 0) return null;
+            return Process.GetProcessById(pid);
+        }
+
         public void InstallGame(UInt64 GameID)
         {
             CGameID gameID = new CGameID(GameID);
@@ -130,6 +138,107 @@ namespace CarbyneSteamContextWrapper
                     break;
             }
         }
+
+        public string[] GetGameLibraries()
+        {
+            try
+            {
+                if (!Is32Bit())
+                {
+                    return Steam4NETProxy.GetGameLibraries();
+                }
+                else
+                {
+                    return WrappedContext.GetGameLibraries();
+                }
+            }
+            catch
+            {
+                return new string[0];
+            }
+        }
+
+        public EAppUpdateError? InstallGame(UInt64 GameID, int GameLibraryIndex)
+        {
+            try
+            {
+                if (!Is32Bit())
+                {
+                    return Steam4NETProxy.InstallGame(GameID, GameLibraryIndex);
+                }
+                else
+                {
+                    return WrappedContext.InstallGame(GameID, GameLibraryIndex);
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public List<CarbyneSteamContext.SteamLaunchableApp> GetOwnedApps()
+        {
+            try
+            {
+                if (!Is32Bit())
+                {
+                    return Steam4NETProxy.GetOwnedApps();
+                }
+                else
+                {
+                    return WrappedContext.GetOwnedApps();
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public List<CarbyneSteamContext.SteamLaunchableModGoldSrc> GetGoldSrcMods()
+        {
+            try
+            {
+                if (!Is32Bit())
+                {
+                    return Steam4NETProxy.GetGoldSrcMods();
+                }
+                else
+                {
+                    return WrappedContext.GetGoldSrcMods();
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public List<CarbyneSteamContext.SteamLaunchableModSource> GetSourceMods()
+        {
+            try
+            {
+                if (!Is32Bit())
+                {
+                    return Steam4NETProxy.GetSourceMods();
+                }
+                else
+                {
+                    return WrappedContext.GetSourceMods();
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+
+
+
+
+
 
         public void StartBigPicture()
         {

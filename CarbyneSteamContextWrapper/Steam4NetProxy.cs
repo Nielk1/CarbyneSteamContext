@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using CarbyneSteamContext;
 
 namespace CarbyneSteamContextWrapper
 {
@@ -26,27 +27,24 @@ namespace CarbyneSteamContextWrapper
 
         public Steam4NETProxy()
         {
-            /*string PipeSuffix = string.Empty;
             if (Process.GetProcessesByName("CarbyneSteamContextServer").Length == 0)
             {
                 // we have no way to make sure the thing isn't running globally to stick our random suffix on it, and what would the point be, useless feature
-                //PipeSuffix = Guid.NewGuid().ToString();
                 server = Process.Start(new ProcessStartInfo()
                 {
                     FileName = "CarbyneSteamContextServer.exe",
-                    //Arguments = $"1000 \"{PipeSuffix}\"",
-                    Arguments = $"1000",
+                    Arguments = "1000",
                     UseShellExecute = false
                 });
-            }*/
+            }
             if (Process.GetProcessesByName("CarbyneSteamContextServer").Length > 0)
             {
                 pipe = new NamedPipeClientStream(".", $"CarbyneSteam4NET_Direct", PipeDirection.InOut);
                 pipeReader = new StreamReader(pipe);
                 pipeWriter = new StreamWriter(pipe);
                 pipe.Connect();
+                pipeWriter.AutoFlush = true;
             }
-            //pipeReader.ReadLine();
         }
 
 #region Dispose
@@ -80,33 +78,51 @@ namespace CarbyneSteamContextWrapper
         {
             Dispose(false);
         }
-#endregion Dispose
+        #endregion Dispose
 
-        internal bool IsInstalled(UInt64 GameID)
+        private InteropFunctionReturn SendFunctionCall(InteropFunctionCall call, bool Return = true)
         {
             lock (pipeLock)
             {
-                Task WriteLineTask = pipeWriter.WriteLineAsync(JsonConvert.SerializeObject(
-                    new InteropFunctionCall()
-                    {
-                        Function = "IsInstalled",
-                        Paramaters = new Dictionary<string, JToken>()
-                        {
-                            { "GameID", GameID }
-                        }
-                    }));
+                Task WriteLineTask = pipeWriter.WriteLineAsync(JsonConvert.SerializeObject(call));
                 int TimeOut = 0;
                 while (!WriteLineTask.IsCompleted && !WriteLineTask.IsCanceled && !WriteLineTask.IsFaulted)
                 {
                     Thread.Sleep(100);
                     TimeOut += 100;
                     if (TimeOut >= 1000)
-                        return false;
+                        throw new TimeoutException("The InteropServer did not receive our Data");
                 }
-                pipeWriter.Flush();
-                InteropFunctionReturn retVal = JsonConvert.DeserializeObject<InteropFunctionReturn>(pipeReader.ReadLine());
-                return retVal.Return.ToObject<bool>();
+                //pipeWriter.Flush();
+                if (Return)
+                {
+                    InteropFunctionReturn retVal = JsonConvert.DeserializeObject<InteropFunctionReturn>(pipeReader.ReadLine());
+                    return retVal;
+                }
+                return null;
             }
+        }
+
+        /*internal void Ping()
+        {
+            InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
+            {
+                Command = "Ping"
+            }, false);
+            //return retVal.Return.ToObject<bool>();
+        }*/
+
+        internal bool IsInstalled(UInt64 GameID)
+        {
+            InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
+            {
+                Function = "IsInstalled",
+                Paramaters = new Dictionary<string, JToken>()
+                {
+                    { "GameID", GameID }
+                }
+            });
+            return retVal.Return.ToObject<bool>();
         }
 
         internal void Shutdown()
@@ -116,27 +132,66 @@ namespace CarbyneSteamContextWrapper
                 if (server != null && server.IsRunning()) // make sure it's our service to stop
                 {
                     // we can't be sure the correct program is running so we might send this to a constant server
-                    Task WriteLineTask = pipeWriter.WriteLineAsync(JsonConvert.SerializeObject(
-                        new InteropFunctionCall()
-                        {
-                            Command = "Die"
-                        }));
-                    int TimeOut = 0;
-                    while (!WriteLineTask.IsCompleted && !WriteLineTask.IsCanceled && !WriteLineTask.IsFaulted)
+                    InteropFunctionReturn retVal = SendFunctionCall(
+                    new InteropFunctionCall()
                     {
-                        Thread.Sleep(100);
-                        TimeOut += 100;
-                        if (TimeOut >= 1000)
-                            break;
-                    }
-                    pipeWriter.Flush();
+                        Command = "Die"
+                    }, false);
                 }
                 pipe.Close();
                 pipe.Dispose();
             }
         }
 
+        internal EAppUpdateError? InstallGame(ulong gameID, int gameLibraryIndex)
+        {
+            InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
+            {
+                Function = "InstallGame",
+                Paramaters = new Dictionary<string, JToken>()
+                {
+                    { "GameID", gameID },
+                    { "GameLibraryIndex", gameLibraryIndex }
+                }
+            });
+            return retVal.Return.ToObject<EAppUpdateError?>();
+        }
 
+        internal List<SteamLaunchableApp> GetOwnedApps()
+        {
+            InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
+            {
+                Function = "GetOwnedApps"
+            });
+            return retVal.Return.ToObject<List<SteamLaunchableApp>>();
+        }
+
+        internal List<SteamLaunchableModGoldSrc> GetGoldSrcMods()
+        {
+            InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
+            {
+                Function = "GetGoldSrcMods"
+            });
+            return retVal.Return.ToObject<List<SteamLaunchableModGoldSrc>>();
+        }
+
+        internal List<SteamLaunchableModSource> GetSourceMods()
+        {
+            InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
+            {
+                Function = "GetSourceMods"
+            });
+            return retVal.Return.ToObject<List<SteamLaunchableModSource>>();
+        }
+
+        internal string[] GetGameLibraries()
+        {
+            InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
+            {
+                Function = "GetGameLibraries"
+            });
+            return retVal.Return.ToObject<string[]>();
+        }
 
         internal void Init()
         {
@@ -158,5 +213,6 @@ namespace CarbyneSteamContextWrapper
     {
         public JToken Return { get; set; }
         public Dictionary<string, JToken> OutParamaters { get; set; }
+        public Exception Exception { get; set; }
     }
 }

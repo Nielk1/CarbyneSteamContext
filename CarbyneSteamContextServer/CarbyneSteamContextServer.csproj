@@ -39,7 +39,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\..\..\..\..\LaunchBoxPlugins\TestPlugins\packages\Newtonsoft.Json.10.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\..\..\LaunchBoxPlugins\TestPlugins\packages\Newtonsoft.Json.10.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -61,6 +61,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\CustomForks\open-steamworks\Steam4NET2\Steam4NET2\Steam4NET.csproj">
+      <Project>{1A204257-FE82-4BBE-9ED4-40694821C31F}</Project>
+      <Name>Steam4NET</Name>
+    </ProjectReference>
     <ProjectReference Include="..\CarbyneSteamContext\CarbyneSteamContext.csproj">
       <Project>{2b595766-6eca-432d-8355-0e74bf68a633}</Project>
       <Name>CarbyneSteamContext</Name>
