@@ -70,6 +70,8 @@ namespace CarbyneSteamContextWrapper
         // Flag: Has Dispose already been called?
         bool disposed = false;
 
+        public bool SteamIsRunning { get { return WrappedContext.SteamPID > 0; } }
+
         // Public implementation of Dispose pattern callable by consumers.
         public void Dispose()
         {
@@ -252,11 +254,11 @@ namespace CarbyneSteamContextWrapper
             return WrappedContext.BigPicturePID > 0;
         }
 
-        public void Init()
+        public void Init(string ProxyServerPath = null, bool SearchSubfolders = false)
         {
             if (!Is32Bit())
             {
-                Steam4NETProxy.Init();
+                Steam4NETProxy.Init(ProxyServerPath, SearchSubfolders);
             }
             else
             {

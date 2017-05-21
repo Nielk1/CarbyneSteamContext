@@ -27,24 +27,7 @@ namespace CarbyneSteamContextWrapper
 
         public Steam4NETProxy()
         {
-            if (Process.GetProcessesByName("CarbyneSteamContextServer").Length == 0)
-            {
-                // we have no way to make sure the thing isn't running globally to stick our random suffix on it, and what would the point be, useless feature
-                server = Process.Start(new ProcessStartInfo()
-                {
-                    FileName = "CarbyneSteamContextServer.exe",
-                    Arguments = "1000",
-                    UseShellExecute = false
-                });
-            }
-            if (Process.GetProcessesByName("CarbyneSteamContextServer").Length > 0)
-            {
-                pipe = new NamedPipeClientStream(".", $"CarbyneSteam4NET_Direct", PipeDirection.InOut);
-                pipeReader = new StreamReader(pipe);
-                pipeWriter = new StreamWriter(pipe);
-                pipe.Connect();
-                pipeWriter.AutoFlush = true;
-            }
+
         }
 
 #region Dispose
@@ -80,7 +63,7 @@ namespace CarbyneSteamContextWrapper
         }
         #endregion Dispose
 
-        private InteropFunctionReturn SendFunctionCall(InteropFunctionCall call, bool Return = true)
+        public InteropFunctionReturn SendFunctionCall(InteropFunctionCall call, bool Return = true)
         {
             lock (pipeLock)
             {
@@ -112,7 +95,7 @@ namespace CarbyneSteamContextWrapper
             //return retVal.Return.ToObject<bool>();
         }*/
 
-        internal bool IsInstalled(UInt64 GameID)
+        public bool IsInstalled(UInt64 GameID)
         {
             InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
             {
@@ -125,7 +108,7 @@ namespace CarbyneSteamContextWrapper
             return retVal.Return.ToObject<bool>();
         }
 
-        internal void Shutdown()
+        public void Shutdown()
         {
             lock (pipeLock)
             {
@@ -143,7 +126,7 @@ namespace CarbyneSteamContextWrapper
             }
         }
 
-        internal EAppUpdateError? InstallGame(ulong gameID, int gameLibraryIndex)
+        public EAppUpdateError? InstallGame(ulong gameID, int gameLibraryIndex)
         {
             InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
             {
@@ -157,7 +140,7 @@ namespace CarbyneSteamContextWrapper
             return retVal.Return.ToObject<EAppUpdateError?>();
         }
 
-        internal List<SteamLaunchableApp> GetOwnedApps()
+        public List<SteamLaunchableApp> GetOwnedApps()
         {
             InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
             {
@@ -166,7 +149,7 @@ namespace CarbyneSteamContextWrapper
             return retVal.Return.ToObject<List<SteamLaunchableApp>>();
         }
 
-        internal List<SteamLaunchableModGoldSrc> GetGoldSrcMods()
+        public List<SteamLaunchableModGoldSrc> GetGoldSrcMods()
         {
             InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
             {
@@ -175,7 +158,7 @@ namespace CarbyneSteamContextWrapper
             return retVal.Return.ToObject<List<SteamLaunchableModGoldSrc>>();
         }
 
-        internal List<SteamLaunchableModSource> GetSourceMods()
+        public List<SteamLaunchableModSource> GetSourceMods()
         {
             InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
             {
@@ -184,7 +167,7 @@ namespace CarbyneSteamContextWrapper
             return retVal.Return.ToObject<List<SteamLaunchableModSource>>();
         }
 
-        internal string[] GetGameLibraries()
+        public string[] GetGameLibraries()
         {
             InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
             {
@@ -193,9 +176,48 @@ namespace CarbyneSteamContextWrapper
             return retVal.Return.ToObject<string[]>();
         }
 
-        internal void Init()
+        public bool Init(string ProxyServerPath = null, bool SearchSubfolders = false)
         {
-            
+            if (Process.GetProcessesByName("CarbyneSteamContextServer").Length == 0)
+            {
+                // we have no way to make sure the thing isn't running globally to stick our random suffix on it, and what would the point be, useless feature
+                ProcessStartInfo info = new ProcessStartInfo()
+                {
+                    FileName = "CarbyneSteamContextServer.exe",
+                    Arguments = "1000",
+                    UseShellExecute = false
+                };
+                if (!string.IsNullOrWhiteSpace(ProxyServerPath))
+                {
+                    string[] possibleServers = Directory.GetFiles(Path.Combine(Directory.GetCurrentDirectory(), ProxyServerPath), "CarbyneSteamContextServer.exe", SearchSubfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+                    if (possibleServers.Length > 0)
+                    {
+                        info.FileName = possibleServers[0];
+                    }
+                }
+                server = Process.Start(info);
+            }
+            if (Process.GetProcessesByName("CarbyneSteamContextServer").Length > 0)
+            {
+                pipe = new NamedPipeClientStream(".", $"CarbyneSteam4NET_Direct", PipeDirection.InOut);
+                pipeReader = new StreamReader(pipe);
+                pipeWriter = new StreamWriter(pipe);
+                try
+                {
+                    pipe.Connect(1000);
+                }
+                catch (TimeoutException tex)
+                {
+                    pipe = null;
+                    pipeReader = null;
+                    pipeWriter = null;
+                    if (server != null) server.Close();
+                    return false;
+                }
+                pipeWriter.AutoFlush = true;
+                return true;
+            }
+            return false;
         }
     }
 
