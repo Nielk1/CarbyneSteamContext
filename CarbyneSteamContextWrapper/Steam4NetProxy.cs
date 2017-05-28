@@ -12,18 +12,20 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using CarbyneSteamContext;
+using System.Net.NetworkInformation;
+using System.Net;
+using System.Collections.Specialized;
 
 namespace CarbyneSteamContextWrapper
 {
     class Steam4NETProxy : IDisposable
     {
         private Process server;
-        private NamedPipeClientStream pipe;
-        private StreamReader pipeReader;
-        private StreamWriter pipeWriter;
-        private object pipeLock = new object();
 
         private Dictionary<Guid, object> InstanceCache = new Dictionary<Guid, object>();
+        private WebClient client = new WebClient();
+        private int ProxyPort;
+
 
         public Steam4NETProxy()
         {
@@ -63,27 +65,69 @@ namespace CarbyneSteamContextWrapper
         }
         #endregion Dispose
 
-        public InteropFunctionReturn SendFunctionCall(InteropFunctionCall call, bool Return = true)
+        private int GetFreePortInRange(int PortStartIndex, int PortEndIndex)
         {
-            lock (pipeLock)
+            //DevUtils.LogDebugMessage(string.Format("GetFreePortInRange, PortStartIndex: {0} PortEndIndex: {1}", PortStartIndex, PortEndIndex));
+            try
             {
-                Task WriteLineTask = pipeWriter.WriteLineAsync(JsonConvert.SerializeObject(call));
-                int TimeOut = 0;
-                while (!WriteLineTask.IsCompleted && !WriteLineTask.IsCanceled && !WriteLineTask.IsFaulted)
+                IPGlobalProperties ipGlobalProperties = IPGlobalProperties.GetIPGlobalProperties();
+
+                IPEndPoint[] tcpEndPoints = ipGlobalProperties.GetActiveTcpListeners();
+                List<int> usedServerTCpPorts = tcpEndPoints.Select(p => p.Port).ToList<int>();
+
+                IPEndPoint[] udpEndPoints = ipGlobalProperties.GetActiveUdpListeners();
+                List<int> usedServerUdpPorts = udpEndPoints.Select(p => p.Port).ToList<int>();
+
+                TcpConnectionInformation[] tcpConnInfoArray = ipGlobalProperties.GetActiveTcpConnections();
+                List<int> usedPorts = tcpConnInfoArray.Where(p => p.State != TcpState.Closed).Select(p => p.LocalEndPoint.Port).ToList<int>();
+
+                usedPorts.AddRange(usedServerTCpPorts.ToArray());
+                usedPorts.AddRange(usedServerUdpPorts.ToArray());
+
+                int unusedPort = 0;
+
+                for (int port = PortStartIndex; port < PortEndIndex; port++)
                 {
-                    Thread.Sleep(100);
-                    TimeOut += 100;
-                    if (TimeOut >= 1000)
-                        throw new TimeoutException("The InteropServer did not receive our Data");
+                    if (!usedPorts.Contains(port))
+                    {
+                        unusedPort = port;
+                        break;
+                    }
                 }
-                //pipeWriter.Flush();
-                if (Return)
+                //DevUtils.LogDebugMessage(string.Format("Local unused Port:{0}", unusedPort.ToString()));
+
+                if (unusedPort == 0)
                 {
-                    InteropFunctionReturn retVal = JsonConvert.DeserializeObject<InteropFunctionReturn>(pipeReader.ReadLine());
-                    return retVal;
+                    //DevUtils.LogErrorMessage("Out of ports");
+                    throw new ApplicationException("GetFreePortInRange, Out of ports");
                 }
-                return null;
+
+                return unusedPort;
             }
+            catch (Exception ex)
+            {
+
+                string errorMessage = ex.Message;
+                //DevUtils.LogErrorMessage(errorMessage);
+                throw;
+            }
+        }
+
+        private int GetLocalFreePort()
+        {
+            int hemoStartLocalPort = 49152;
+            int hemoEndLocalPort = 65535;
+            int localPort = GetFreePortInRange(hemoStartLocalPort, hemoEndLocalPort);
+            //DevUtils.LogDebugMessage(string.Format("Local Free Port:{0}", localPort.ToString()));
+            return localPort;
+        }
+
+
+        public T SendFunctionCall<T>(string function, NameValueCollection paramaters = null)
+        {
+            string download = client.DownloadString($"http://localhost:{ProxyPort}/" + function + paramaters?.ToQueryString());
+
+            return JsonConvert.DeserializeObject<T>(download);
         }
 
         /*internal void Ping()
@@ -97,144 +141,73 @@ namespace CarbyneSteamContextWrapper
 
         public bool IsInstalled(UInt64 GameID)
         {
-            InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
-            {
-                Function = "IsInstalled",
-                Paramaters = new Dictionary<string, JToken>()
+            return SendFunctionCall<bool>("SteamContext/IsInstalled",
+                new NameValueCollection()
                 {
-                    { "GameID", GameID }
-                }
-            });
-            return retVal.Return.ToObject<bool>();
+                    { "GameID", GameID.ToString() }
+                });
         }
 
         public void Shutdown()
         {
-            lock (pipeLock)
+            if (server != null && server.IsRunning()) // make sure it's our service to stop
             {
-                if (server != null && server.IsRunning()) // make sure it's our service to stop
-                {
-                    // we can't be sure the correct program is running so we might send this to a constant server
-                    InteropFunctionReturn retVal = SendFunctionCall(
-                    new InteropFunctionCall()
-                    {
-                        Command = "Die"
-                    }, false);
-                }
-                pipe.Close();
-                pipe.Dispose();
+                server.Close();
             }
         }
 
         public EAppUpdateError? InstallGame(ulong gameID, int gameLibraryIndex)
         {
-            InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
-            {
-                Function = "InstallGame",
-                Paramaters = new Dictionary<string, JToken>()
+            return SendFunctionCall<EAppUpdateError?>("SteamContext/InstallGame",
+                new NameValueCollection()
                 {
-                    { "GameID", gameID },
-                    { "GameLibraryIndex", gameLibraryIndex }
-                }
-            });
-            return retVal.Return.ToObject<EAppUpdateError?>();
+                    { "GameID", gameID.ToString() },
+                    { "GameLibraryIndex", gameLibraryIndex.ToString() }
+                });
         }
 
         public List<SteamLaunchableApp> GetOwnedApps()
         {
-            InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
-            {
-                Function = "GetOwnedApps"
-            });
-            return retVal.Return.ToObject<List<SteamLaunchableApp>>();
+            return SendFunctionCall<List<SteamLaunchableApp>>("SteamContext/GetOwnedApps");
         }
 
         public List<SteamLaunchableModGoldSrc> GetGoldSrcMods()
         {
-            InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
-            {
-                Function = "GetGoldSrcMods"
-            });
-            return retVal.Return.ToObject<List<SteamLaunchableModGoldSrc>>();
+            return SendFunctionCall<List<SteamLaunchableModGoldSrc>>("SteamContext/GetGoldSrcMods");
         }
 
         public List<SteamLaunchableModSource> GetSourceMods()
         {
-            InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
-            {
-                Function = "GetSourceMods"
-            });
-            return retVal.Return.ToObject<List<SteamLaunchableModSource>>();
+            return SendFunctionCall<List<SteamLaunchableModSource>>("SteamContext/GetSourceMods");
         }
 
         public string[] GetGameLibraries()
         {
-            InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
-            {
-                Function = "GetGameLibraries"
-            });
-            return retVal.Return.ToObject<string[]>();
+            return SendFunctionCall<string[]>("SteamContext/GetGameLibraries");
         }
 
         public bool Init(string ProxyServerPath = null, bool SearchSubfolders = false)
         {
-            if (Process.GetProcessesByName("CarbyneSteamContextServer").Length == 0)
+            ProxyPort = GetLocalFreePort();
+
+            // we have no way to make sure the thing isn't running globally to stick our random suffix on it, and what would the point be, useless feature
+            ProcessStartInfo info = new ProcessStartInfo()
             {
-                // we have no way to make sure the thing isn't running globally to stick our random suffix on it, and what would the point be, useless feature
-                ProcessStartInfo info = new ProcessStartInfo()
-                {
-                    FileName = "CarbyneSteamContextServer.exe",
-                    Arguments = "1000",
-                    UseShellExecute = false
-                };
-                if (!string.IsNullOrWhiteSpace(ProxyServerPath))
-                {
-                    string[] possibleServers = Directory.GetFiles(Path.Combine(Directory.GetCurrentDirectory(), ProxyServerPath), "CarbyneSteamContextServer.exe", SearchSubfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
-                    if (possibleServers.Length > 0)
-                    {
-                        info.FileName = possibleServers[0];
-                    }
-                }
-                server = Process.Start(info);
-            }
-            if (Process.GetProcessesByName("CarbyneSteamContextServer").Length > 0)
+                FileName = "CarbyneSteamContextServer.exe",
+                Arguments = ProxyPort.ToString(),
+                UseShellExecute = false
+            };
+            if (!string.IsNullOrWhiteSpace(ProxyServerPath))
             {
-                pipe = new NamedPipeClientStream(".", $"CarbyneSteam4NET_Direct", PipeDirection.InOut);
-                pipeReader = new StreamReader(pipe);
-                pipeWriter = new StreamWriter(pipe);
-                try
+                string[] possibleServers = Directory.GetFiles(Path.Combine(Directory.GetCurrentDirectory(), ProxyServerPath), "CarbyneSteamContextServer.exe", SearchSubfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+                if (possibleServers.Length > 0)
                 {
-                    pipe.Connect(1000);
+                    info.FileName = possibleServers[0];
                 }
-                catch (TimeoutException tex)
-                {
-                    pipe = null;
-                    pipeReader = null;
-                    pipeWriter = null;
-                    if (server != null) server.Close();
-                    return false;
-                }
-                pipeWriter.AutoFlush = true;
-                return true;
             }
+            server = Process.Start(info);
+
             return false;
         }
-    }
-
-    public class InteropFunctionCall
-    {
-        public string Command { get; set; }
-        //public string Class { get; set; }
-        public string Function { get; set; }
-        //public Type Generic { get; set; }
-        //public Guid? InstanceID { get; set; }
-        public Dictionary<string, JToken> Paramaters { get; set; }
-    }
-
-    public class InteropFunctionReturn
-    {
-        public JToken Return { get; set; }
-        public Dictionary<string, JToken> OutParamaters { get; set; }
-        public Exception Exception { get; set; }
     }
 }

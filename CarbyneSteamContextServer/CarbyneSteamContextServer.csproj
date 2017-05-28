@@ -44,6 +44,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -61,6 +62,14 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\CarbyneIotWeb\IotWeb NET45\IotWeb NET45.csproj">
+      <Project>{33f56077-18e3-414d-bcc1-496790aaea93}</Project>
+      <Name>IotWeb NET45</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\CarbyneIotWeb\IotWeb Portable\IotWeb Portable.csproj">
+      <Project>{e788ca1a-9838-48a1-a961-1137e74eaf70}</Project>
+      <Name>IotWeb Portable</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\open-steamworks\Steam4NET2\Steam4NET2\Steam4NET.csproj">
       <Project>{1a204257-fe82-4bbe-9ed4-40694821c31f}</Project>
       <Name>Steam4NET</Name>

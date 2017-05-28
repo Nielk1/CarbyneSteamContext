@@ -329,7 +329,7 @@ namespace CarbyneSteamContext
             ClientAppManager = null;
             if (SteamClient != null && User != 0 && User != -1)
             {
-                SteamClient.ReleaseUser(Pipe, User);
+                //SteamClient.ReleaseUser(Pipe, User);
             }
             if (SteamClient != null && Pipe != 0)
             {
