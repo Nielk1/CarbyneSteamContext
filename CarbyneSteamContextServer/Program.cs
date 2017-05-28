@@ -192,6 +192,17 @@ namespace CarbyneSteamContextServer
             
             switch (uriParts[0])
             {
+                case "System":
+                    if(uriParts.Length > 1)
+                    {
+                        switch(uriParts[1])
+                        {
+                            case "Exit":
+                                Application.Exit();
+                                return;
+                        }
+                    }
+                    break;
                 case "SteamContext":
                     if (uriParts.Length > 1)
                     {

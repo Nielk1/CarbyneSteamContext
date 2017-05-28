@@ -130,6 +130,11 @@ namespace CarbyneSteamContextWrapper
             return JsonConvert.DeserializeObject<T>(download);
         }
 
+        public void SendFunctionCall(string function, NameValueCollection paramaters = null)
+        {
+            client.DownloadString($"http://localhost:{ProxyPort}/" + function + paramaters?.ToQueryString());
+        }
+
         /*internal void Ping()
         {
             InteropFunctionReturn retVal = SendFunctionCall(new InteropFunctionCall()
@@ -152,7 +157,7 @@ namespace CarbyneSteamContextWrapper
         {
             if (server != null && server.IsRunning()) // make sure it's our service to stop
             {
-                server.Close();
+                SendFunctionCall("System/Exit");
             }
         }
 
